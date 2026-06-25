@@ -1,0 +1,6 @@
+{
+  "name": "盐水棒冰库存本",
+  "description": "产品、SKU两级管理，支持进货、出货记录、LocalStorage数据持久化、自动补货建议，并具备便捷的出货数量增减与日期快速录入。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
