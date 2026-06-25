@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>盐水棒冰库存本</title>
+<style>
+  :root{
+    --ink:#2b2a28;
+    --paper:#eef9fa;
+    --card:#ffffff;
+    --line:#c9d0e4;
+    --accent:#7475bd;
+    --accent-soft:#c4e4ff;
+    --good:#5c7c4a;
+    --warn:#bd23a3;
+    --muted:#707b8a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    padding-bottom:84px;
+  }
+  .topbar{position:sticky;top:0;z-index:10;background:var(--paper);padding:18px 20px 10px;border-bottom:1px solid var(--line);}
+  .topbar h1{font-size:20px;margin:0;letter-spacing:.5px;font-weight:700;}
+  .topbar .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  main{padding:14px 16px 8px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+  .card h2{font-size:14px;margin:0 0 10px;color:var(--accent);font-weight:700;letter-spacing:.3px;}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;}
+  input,select{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-size:15px;background:#fffdf9;color:var(--ink);
+    font-family:inherit;
+  }
+  input:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent);}
+  .row{display:flex;gap:10px;}
+  .row > div{flex:1;}
+  button{border:none;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .btn-primary{background:var(--accent);color:#fff;width:100%;margin-top:14px;}
+  .btn-primary:active{opacity:.85;}
+  .btn-secondary{background:var(--accent-soft);color:var(--accent);width:100%;margin-top:10px;font-size:13px;padding:9px;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--muted);width:100%;font-size:13px;padding:9px;}
+  .btn-danger{background:#fbe7e4;color:var(--warn);width:100%;font-size:13px;padding:9px;}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:30px 0;}
+
+  .product-group{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;}
+  .product-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fdf9f1;cursor:pointer;}
+  .product-head .pname{font-size:15px;font-weight:700;}
+  .product-head .pmeta{font-size:11px;color:var(--muted);margin-top:2px;}
+  .product-head .ptotal{font-size:19px;font-weight:700;color:var(--accent);text-align:right;}
+  .product-head .caret{transition:transform .2s;color:var(--muted);font-size:12px;margin-left:8px;display:inline-block;}
+  .product-group.open .caret{transform:rotate(90deg);}
+  .sku-list{display:none;padding:0 14px 12px;}
+  .product-group.open .sku-list{display:block;}
+  .sku-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px dashed var(--line);}
+  .sku-item .sname{font-size:13.5px;}
+  .sku-item .smeta{font-size:11px;color:var(--muted);margin-top:2px;}
+  .sku-item .sstock{font-size:16px;font-weight:700;}
+  .tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:20px;margin-top:4px;}
+  .tag-ok{background:#e8f1ea;color:var(--good);}
+  .tag-warn{background:#fbe7e4;color:var(--warn);}
+  .tag-mid{background:#fdf2e0;color:#a0742a;}
+  .link-btn{font-size:11px;color:var(--accent);text-decoration:underline;margin-left:8px;cursor:pointer;}
+  .link-btn.warn{color:var(--warn);}
+  .add-sku-row{padding-top:10px;border-top:1px dashed var(--line);margin-top:4px;}
+
+  nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding:6px 6px env(safe-area-inset-bottom,6px);z-index:20;}
+  nav.tabs button{flex:1;background:transparent;color:var(--muted);font-size:11px;padding:8px 4px 6px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  nav.tabs button.active{color:var(--accent);background:var(--accent-soft);}
+  nav.tabs .icon{font-size:18px;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .history-item{font-size:13px;padding:8px 0;border-bottom:1px dashed var(--line);}
+  .history-item:last-child{border-bottom:none;}
+  .history-row{display:flex;justify-content:space-between;align-items:flex-start;}
+  .history-item .h-date{color:var(--muted);font-size:11px;margin-top:2px;}
+  .history-item .h-actions{flex-shrink:0;white-space:nowrap;margin-left:8px;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
+  .stat-box{background:#fffdf9;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;}
+  .stat-box .num{font-size:18px;font-weight:700;color:var(--accent);}
+  .stat-box .lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:30;}
+  .toast.show{opacity:1;}
+  .helper{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;}
+  .advice-product-title{font-size:15px;font-weight:700;margin:4px 0 8px;}
+  .advice-sku-card{background:#fdf9f1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+  .advice-sku-card .sname{font-size:13px;font-weight:600;}
+  .channel-line{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6;}
+  .channel-line b{color:var(--ink);}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(43,42,40,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-overlay.show{display:flex;}
+  .modal-box{background:var(--card);border-radius:16px;padding:18px 18px 16px;width:100%;max-width:360px;max-height:85vh;overflow-y:auto;}
+  .modal-box h2{font-size:15px;margin:0 0 4px;color:var(--accent);font-weight:700;}
+  .modal-actions{display:flex;gap:8px;margin-top:14px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>盐水棒冰库存本</h1>
+  <div class="sub">产品 → SKU 两级管理，进货 · 出货 · 自动算补货</div>
+</div>
+
+<main>
+
+  <div class="view active" id="view-overview">
+    <div class="card">
+      <h2>新建产品</h2>
+      <label>产品名称（如"挂件"，颜色/款式之后作为SKU添加）</label>
+      <input id="np-name" placeholder="例如：宽笔刷挂件">
+      <button class="btn-primary" onclick="createProduct()">创建产品</button>
+    </div>
+
+    <div class="card">
+      <h2>产品与库存</h2>
+      <div id="product-list"><div class="empty">还没有产品，先在上面创建一个吧</div></div>
+    </div>
+
+    <div class="card">
+      <h2>导出数据</h2>
+      <div class="helper">导出全部产品的当前库存快照，以及所有进货/出货记录，生成一个CSV文件，可以用Excel或WPS打开。</div>
+      <button class="btn-secondary" onclick="exportCSV()">导出CSV</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-in">
+    <div class="card">
+      <h2>登记进货</h2>
+      <label>选择产品</label>
+      <select id="in-product" onchange="syncSkuOptions('in')"></select>
+      <label>选择SKU</label>
+      <select id="in-sku"></select>
+      <label>日期</label>
+      <input type="date" id="in-date">
+      <div class="row">
+        <div>
+          <label>进货数量</label>
+          <input id="in-qty" type="number" inputmode="numeric" placeholder="0">
+        </div>
+        <div>
+          <label>单价成本(元，选填)</label>
+          <input id="in-cost" type="number" inputmode="decimal" placeholder="0">
+        </div>
+      </div>
+      <label>批次备注（选填，如"第3批"）</label>
+      <input id="in-note" placeholder="例如：工厂第3批，含运费均摊">
+      <button class="btn-primary" onclick="recordPurchase()">确认入库</button>
+    </div>
+    <div class="card">
+      <h2>最近进货记录</h2>
+      <div id="in-history"><div class="empty">暂无记录</div></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-out">
+    <div class="card">
+      <h2>登记出货</h2>
+      <label>选择产品</label>
+      <select id="out-product" onchange="syncSkuOptions('out')"></select>
+      <label>选择SKU</label>
+      <select id="out-sku"></select>
+      <label>日期</label>
+      <input type="date" id="out-date">
+      <label>出货数量</label>
+      <input id="out-qty" type="number" inputmode="numeric" placeholder="0">
+      <label>渠道</label>
+      <select id="out-channel"></select>
+      <button class="btn-primary" onclick="recordSale()">确认出货</button>
+    </div>
+    <div class="card">
+      <h2>最近出货记录</h2>
+      <div id="out-history"><div class="empty">暂无记录</div></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-advice">
+    <div class="card">
+      <h2>补货建议</h2>
+      <div id="advice-list"><div class="empty">先创建产品和SKU并记录几笔出货，才能算出销售速度</div></div>
+    </div>
+    <div class="card">
+      <h2>这个数字怎么算出来的？</h2>
+      <div class="helper">
+        每个SKU单独计算：<br>
+        日均销量 = 最近30天该SKU出货总量 ÷ 30<br>
+        安全库存 = 日均销量 × 补货周期一半（防止延误）<br>
+        建议库存下限 = 日均销量 × 补货周期 + 安全库存<br>
+        产品总销量 = 该产品下所有SKU销量相加，渠道占比同样按最近30天统计。
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<nav class="tabs">
+  <button class="active" onclick="switchView('overview',this)"><span class="icon">📦</span>总览</button>
+  <button onclick="switchView('in',this)"><span class="icon">⬇️</span>进货</button>
+  <button onclick="switchView('out',this)"><span class="icon">⬆️</span>出货</button>
+  <button onclick="switchView('advice',this)"><span class="icon">📊</span>补货建议</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+
+<script>
+const CHANNELS = ['淘宝','小红书','微店','线下','其他'];
+
+let state = { products: [] };
+let openProducts = {};
+
+// 动态脚本存储库以获取 window.storage API
+async function loadState(){
+  try{
+    const res = await window.storage.get('inventory-state', false);
+    if(res && res.value){ state = JSON.parse(res.value); }
+  }catch(e){ /* 没有数据，使用默认空状态 */ }
+  migrateIfNeeded();
+  initChannelSelect();
+  render();
+  ensureDateDefaults();
+}
+
+function initChannelSelect(){
+  const sel = document.getElementById('out-channel');
+  sel.innerHTML = CHANNELS.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function migrateIfNeeded(){
+  let changed = false;
+  state.products.forEach(p=>{
+    if(!p.skus){
+      p.skus = [{
+        id: uid(), name: '默认款',
+        stock: p.stock||0, leadtime: p.leadtime||20,
+        purchases: p.purchases||[], sales: p.sales||[]
+      }];
+      delete p.stock; delete p.leadtime; delete p.purchases; delete p.sales;
+      changed = true;
+    }
+    p.skus.forEach(s=>{
+      if(s.initialStock === undefined){
+        s.purchases = (s.purchases||[]).map(normalizePurchaseRecord);
+        s.sales = (s.sales||[]).map(normalizeSaleRecord);
+        const purchaseTotal = s.purchases.reduce((a,r)=>a+r.qty,0);
+        const saleTotal = s.sales.reduce((a,r)=>a+r.qty,0);
+        s.initialStock = (s.stock||0) - purchaseTotal + saleTotal;
+        delete s.stock;
+        if(s.leadtime===undefined) s.leadtime = 20;
+        changed = true;
+      }
+    });
+  });
+  if(changed) saveState();
+}
+
+function normalizePurchaseRecord(r){
+  return {
+    id: r.id || uid(),
+    date: typeof r.date==='number' ? tsToDateStr(r.date) : (r.date || todayStr()),
+    qty: r.qty||0,
+    cost: r.cost||0,
+    note: r.note||'',
+    createdAt: r.createdAt || (typeof r.date==='number'? r.date : Date.now())
+  };
+}
+function normalizeSaleRecord(r){
+  let channel = r.channel || '其他';
+  if(!CHANNELS.includes(channel)) channel = '其他';
+  return {
+    id: r.id || uid(),
+    date: typeof r.date==='number' ? tsToDateStr(r.date) : (r.date || todayStr()),
+    qty: r.qty||0,
+    channel: channel,
+    createdAt: r.createdAt || (typeof r.date==='number'? r.date : Date.now())
+  };
+}
+
+async function saveState(){
+  try{
+    await window.storage.set('inventory-state', JSON.stringify(state), false);
+  }catch(e){
+    showToast('保存失败，请重试');
+  }
+}
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+function todayStr(){
+  const d = new Date();
+  const off = d.getTimezoneOffset()*60000;
+  return new Date(d.getTime()-off).toISOString().slice(0,10);
+}
+function tsToDateStr(ts){
+  const d = new Date(ts);
+  const off = d.getTimezoneOffset()*60000;
+  return new Date(d.getTime()-off).toISOString().slice(0,10);
+}
+function dateToTs(dateStr){
+  return new Date(dateStr+'T00:00:00').getTime();
+}
+function formatDateStr(dateStr){
+  if(!dateStr) return '';
+  const parts = dateStr.split('-');
+  return parseInt(parts[1])+'/'+parseInt(parts[2]);
+}
+
+function ensureDateDefaults(){
+  const ind = document.getElementById('in-date');
+  const outd = document.getElementById('out-date');
+  if(ind && !ind.value) ind.value = todayStr();
+  if(outd && !outd.value) outd.value = todayStr();
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1600);
+}
+
+function openModal(html){
+  document.getElementById('modal-box').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+function switchView(name, btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(name==='in') renderInHistory();
+  if(name==='out') renderOutHistory();
+  if(name==='advice') renderAdvice();
+  ensureDateDefaults();
+}
+
+/* ---------- 产品 / SKU 增删改 (使用自建 Modal 确认) ---------- */
+
+function createProduct(){
+  const name = document.getElementById('np-name').value.trim();
+  if(!name){ showToast('请输入产品名称'); return; }
+  const p = {id:uid(), name, skus:[]};
+  state.products.push(p);
+  openProducts[p.id] = true;
+  document.getElementById('np-name').value='';
+  saveState();
+  render();
+  showToast('产品已创建，接下来添加SKU吧');
+}
+
+function openEditProduct(pid, ev){
+  if(ev) ev.stopPropagation();
+  const p = state.products.find(x=>x.id===pid);
+  openModal(`
+    <h2>编辑产品</h2>
+    <label>产品名称</label>
+    <input id="m-product-name" value="${escapeHtml(p.name)}">
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn-primary" style="margin-top:0;" onclick="saveEditProduct('${pid}')">保存</button>
+    </div>
+    <button class="btn-danger" style="margin-top:10px;" onclick="deleteProduct('${pid}')">删除整个产品</button>
+  `);
+}
+
+function saveEditProduct(pid){
+  const name = document.getElementById('m-product-name').value.trim();
+  if(!name){ showToast('名称不能为空'); return; }
+  const p = state.products.find(x=>x.id===pid);
+  p.name = name;
+  saveState(); closeModal(); render();
+  showToast('已保存');
+}
+
+// 替换原有 confirm，使用自建模态框进行产品删除确认
+function deleteProduct(id){
+  openModal(`
+    <h2>确认删除产品</h2>
+    <div style="font-size:13.5px;color:var(--muted);margin:10px 0 15px;line-height:1.5;">
+      确定删除整个产品及其所有SKU和历史记录吗？该操作无法恢复。
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn-primary" style="margin-top:0;background:var(--warn);color:white;" onclick="executeDeleteProduct('${id}')">确定删除</button>
+    </div>
+  `);
+}
+
+function executeDeleteProduct(id){
+  state.products = state.products.filter(p=>p.id!==id);
+  saveState(); closeModal(); render();
+  showToast('产品已删除');
+}
+
+// 替换原有 confirm，使用自建模态框进行SKU删除确认
+function deleteSku(pid, sid, ev){
+  if(ev) ev.stopPropagation();
+  openModal(`
+    <h2>确认删除 SKU</h2>
+    <div style="font-size:13.5px;color:var(--muted);margin:10px 0 15px;line-height:1.5;">
+      确定删除这个 SKU 及其所有的进出货记录吗？该操作无法恢复。
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn-primary" style="margin-top:0;background:var(--warn);color:white;" onclick="executeDeleteSku('${pid}','${sid}')">确定删除</button>
+    </div>
+  `);
+}
+
+function executeDeleteSku(pid, sid){
+  const p = state.products.find(x=>x.id===pid);
+  if(p){
+    p.skus = p.skus.filter(s=>s.id!==sid);
+  }
+  saveState(); closeModal(); render();
+  showToast('SKU已删除');
+}
+
+function openEditSku(pid, sid, ev){
+  if(ev) ev.stopPropagation();
+  const p = state.products.find(x=>x.id===pid);
+  const s = p.skus.find(x=>x.id===sid);
+  openModal(`
+    <h2>编辑SKU</h2>
+    <label>SKU名称</label>
+    <input id="m-sku-name" value="${escapeHtml(s.name)}">
+    <label>补货周期(天)</label>
+    <input id="m-sku-leadtime" type="number" inputmode="numeric" value="${s.leadtime}">
+    <label>当前库存（盘点纠错用，改这里会自动调整库存基数）</label>
+    <input id="m-sku-stock" type="number" inputmode="numeric" value="${skuStock(s)}">
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn-primary" style="margin-top:0;" onclick="saveEditSku('${pid}','${sid}')">保存</button>
+    </div>
+    <button class="btn-danger" style="margin-top:10px;" onclick="deleteSkuFromModal('${pid}','${sid}')">删除这个SKU</button>
+  `);
+}
+
+function saveEditSku(pid, sid){
+  const name = document.getElementById('m-sku-name').value.trim();
+  const leadtime = parseInt(document.getElementById('m-sku-leadtime').value)||20;
+  const newStock = parseInt(document.getElementById('m-sku-stock').value);
+  if(!name){ showToast('名称不能为空'); return; }
+  const p = state.products.find(x=>x.id===pid);
+  const s = p.skus.find(x=>x.id===sid);
+  s.name = name;
+  s.leadtime = leadtime;
+  if(!isNaN(newStock)){
+    const purchaseTotal = skuPurchaseTotal(s);
+    const saleTotal = skuSaleTotal(s);
+    s.initialStock = newStock - purchaseTotal + saleTotal;
+  }
+  saveState(); closeModal(); render();
+  showToast('已保存');
+}
+
+function deleteSkuFromModal(pid, sid){
+  deleteSku(pid, sid);
+}
+
+function toggleProduct(pid){
+  openProducts[pid] = !openProducts[pid];
+  renderProductList();
+}
+
+function showAddSkuForm(pid){
+  const container = document.getElementById('sku-form-slot-'+pid);
+  container.innerHTML = `
+    <div class="add-sku-form">
+      <label>SKU名称（如颜色/款式）</label>
+      <input id="newsku-name-${pid}" placeholder="例如：蓝色 / M码">
+      <div class="row">
+        <div>
+          <label>初始库存</label>
+          <input id="newsku-stock-${pid}" type="number" inputmode="numeric" placeholder="0">
+        </div>
+        <div>
+          <label>补货周期(天)</label>
+          <input id="newsku-leadtime-${pid}" type="number" inputmode="numeric" placeholder="20">
+        </div>
+      </div>
+      <button class="btn-primary" onclick="addSku('${pid}')">添加SKU</button>
+    </div>`;
+}
+
+function addSku(pid){
+  const name = document.getElementById('newsku-name-'+pid).value.trim();
+  const stock = parseInt(document.getElementById('newsku-stock-'+pid).value)||0;
+  const leadtime = parseInt(document.getElementById('newsku-leadtime-'+pid).value)||20;
+  if(!name){ showToast('请输入SKU名称'); return; }
+  const p = state.products.find(x=>x.id===pid);
+  p.skus.push({id:uid(), name, leadtime, initialStock:stock, purchases:[], sales:[]});
+  saveState();
+  render();
+  showToast('SKU已添加');
+}
+
+/* ---------- 计算函数 ---------- */
+
+function skuPurchaseTotal(sku){ return sku.purchases.reduce((a,r)=>a+r.qty,0); }
+function skuSaleTotal(sku){ return sku.sales.reduce((a,r)=>a+r.qty,0); }
+function skuStock(sku){ return sku.initialStock + skuPurchaseTotal(sku) - skuSaleTotal(sku); }
+
+function dailyAvgSku(sku, days=30){
+  const cutoff = Date.now() - days*86400000;
+  const total = sku.sales.filter(r=>dateToTs(r.date)>=cutoff).reduce((a,r)=>a+r.qty,0);
+  return total/days;
+}
+
+function channelBreakdownSku(sku, days=30){
+  const cutoff = Date.now() - days*86400000;
+  const map = {};
+  CHANNELS.forEach(c=>map[c]=0);
+  sku.sales.filter(r=>dateToTs(r.date)>=cutoff).forEach(r=>{
+    map[r.channel] = (map[r.channel]||0) + r.qty;
+  });
+  return map;
+}
+
+function productTotalStock(p){ return p.skus.reduce((a,s)=>a+skuStock(s),0); }
+function productTotalAvg(p){ return p.skus.reduce((a,s)=>a+dailyAvgSku(s),0); }
+function channelBreakdownProduct(p, days=30){
+  const map = {};
+  CHANNELS.forEach(c=>map[c]=0);
+  p.skus.forEach(s=>{
+    const sm = channelBreakdownSku(s, days);
+    CHANNELS.forEach(c=>map[c]+=sm[c]);
+  });
+  return map;
+}
+function formatChannelLine(map){
+  return CHANNELS.map(c=>`${c} <b>${map[c]}</b>`).join(' · ');
+}
+
+function skuStatus(sku){
+  const avg = dailyAvgSku(sku);
+  const stock = skuStock(sku);
+  const reorderPoint = avg*sku.leadtime + avg*(sku.leadtime/2);
+  if(avg===0) return {tag:'暂无销量数据', cls:'tag-mid'};
+  if(stock <= reorderPoint*0.5) return {tag:'库存紧张', cls:'tag-warn'};
+  if(stock <= reorderPoint) return {tag:'接近补货点', cls:'tag-mid'};
+  return {tag:'库存充足', cls:'tag-ok'};
+}
+
+/* ---------- 渲染 ---------- */
+
+function render(){
+  renderProductList();
+  renderProductSelects();
+  renderInHistory();
+  renderOutHistory();
+  renderAdvice();
+}
+
+function renderProductList(){
+  const el = document.getElementById('product-list');
+  if(state.products.length===0){
+    el.innerHTML = '<div class="empty">还没有产品，先在上面创建一个吧</div>';
+    return;
+  }
+  el.innerHTML = state.products.map(p=>{
+    const isOpen = !!openProducts[p.id];
+    const totalStock = productTotalStock(p);
+    const totalAvg = productTotalAvg(p);
+    const skuRows = p.skus.map(s=>{
+      const st = skuStatus(s);
+      const avg = dailyAvgSku(s);
+      return `<div class="sku-item">
+        <div>
+          <div class="sname">${escapeHtml(s.name)}</div>
+          <div class="smeta">日均约${avg.toFixed(1)}个 · 周期${s.leadtime}天
+            <span class="link-btn" onclick="openEditSku('${p.id}','${s.id}',event)">编辑</span>
+            <span class="link-btn warn" onclick="deleteSku('${p.id}','${s.id}',event)">删除</span>
+          </div>
+          <div class="tag ${st.cls}">${st.tag}</div>
+        </div>
+        <div class="sstock">${skuStock(s)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="product-group ${isOpen?'open':''}">
+      <div class="product-head" onclick="toggleProduct('${p.id}')">
+        <div>
+          <div class="pname">${escapeHtml(p.name)} <span class="caret">▶</span></div>
+          <div class="pmeta">${p.skus.length}个SKU · 总日均约${totalAvg.toFixed(1)}个
+            <span class="link-btn" onclick="openEditProduct('${p.id}',event)">编辑</span>
+            <span class="link-btn warn" onclick="event.stopPropagation(); deleteProduct('${p.id}')">删除</span>
+          </div>
+        </div>
+        <div class="ptotal">${totalStock}</div>
+      </div>
+      <div class="sku-list">
+        ${skuRows || '<div class="empty" style="padding:10px 0;">这个产品还没有SKU</div>'}
+        <div class="add-sku-row" id="sku-form-slot-${p.id}">
+          <button class="btn-secondary" onclick="showAddSkuForm('${p.id}')">+ 添加SKU</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderProductSelects(){
+  ['in','out'].forEach(prefix=>{
+    const sel = document.getElementById(prefix+'-product');
+    const prevVal = sel.value;
+    const placeholder = state.products.length? '' : '<option disabled selected>请先创建产品</option>';
+    sel.innerHTML = placeholder + state.products.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+    if(state.products.some(p=>p.id===prevVal)) sel.value = prevVal;
+    syncSkuOptions(prefix);
+  });
+}
+
+function syncSkuOptions(prefix){
+  const pid = document.getElementById(prefix+'-product').value;
+  const skuSel = document.getElementById(prefix+'-sku');
+  const p = state.products.find(x=>x.id===pid);
+  if(!p || p.skus.length===0){
+    skuSel.innerHTML = '<option disabled selected>该产品暂无SKU</option>';
+    return;
+  }
+  skuSel.innerHTML = p.skus.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+}
+
+function recordPurchase(){
+  const pid = document.getElementById('in-product').value;
+  const sid = document.getElementById('in-sku').value;
+  const qty = parseInt(document.getElementById('in-qty').value);
+  const cost = parseFloat(document.getElementById('in-cost').value)||0;
+  const note = document.getElementById('in-note').value.trim();
+  const date = document.getElementById('in-date').value || todayStr();
+  const p = state.products.find(x=>x.id===pid);
+  const s = p && p.skus.find(x=>x.id===sid);
+  if(!s){ showToast('请先创建产品和SKU'); return; }
+  if(!qty || qty<=0){ showToast('请输入有效的进货数量'); return; }
+  s.purchases.push({id:uid(), date, qty, cost, note, createdAt:Date.now()});
+  document.getElementById('in-qty').value='';
+  document.getElementById('in-cost').value='';
+  document.getElementById('in-note').value='';
+  document.getElementById('in-date').value = todayStr();
+  saveState();
+  render();
+  showToast('已入库 '+qty+' 件');
+}
+
+// 登记出货及库存不足二次确认（同样使用 Modal 替换原有 confirm）
+function recordSale(){
+  const pid = document.getElementById('out-product').value;
+  const sid = document.getElementById('out-sku').value;
+  const qty = parseInt(document.getElementById('out-qty').value);
+  const channel = document.getElementById('out-channel').value;
+  const date = document.getElementById('out-date').value || todayStr();
+  const p = state.products.find(x=>x.id===pid);
+  const s = p && p.skus.find(x=>x.id===sid);
+  if(!s){ showToast('请先创建产品和SKU'); return; }
+  if(!qty || qty<=0){ showToast('请输入有效的出货数量'); return; }
+  const currentStock = skuStock(s);
+  if(qty > currentStock){
+    openModal(`
+      <h2>库存超额确认</h2>
+      <div style="font-size:13.5px;color:var(--muted);margin:10px 0 15px;line-height:1.5;">
+        出货数量超过当前库存（当前库存 ${currentStock} 件），确定要强制登记这次出货吗？
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeModal()">取消</button>
+        <button class="btn-primary" style="margin-top:0;" onclick="executeRecordSale('${pid}','${sid}',${qty},'${escapeHtml(channel)}','${date}')">确定强制登记</button>
+      </div>
+    `);
+    return;
+  }
+  executeRecordSale(pid, sid, qty, channel, date);
+}
+
+function executeRecordSale(pid, sid, qty, channel, date){
+  const p = state.products.find(x=>x.id===pid);
+  const s = p && p.skus.find(x=>x.id===sid);
+  if(s){
+    s.sales.push({id:uid(), date, qty, channel, createdAt:Date.now()});
+    document.getElementById('out-qty').value='';
+    document.getElementById('out-date').value = todayStr();
+    saveState();
+    render();
+    closeModal();
+    showToast('已出货 '+qty+' 件');
+  }
+}
+
+function sortRecords(rows){
+  rows.sort((a,b)=> b.date.localeCompare(a.date) || (b.createdAt-a.createdAt));
+  return rows;
+}
+
+function renderInHistory(){
+  const el = document.getElementById('in-history');
+  let rows = [];
+  state.products.forEach(p=>{
+    p.skus.forEach(s=>{
+      s.purchases.forEach(r=>rows.push({pid:p.id, sid:s.id, label:p.name+' · '+s.name, ...r}));
+    });
+  });
+  sortRecords(rows);
+  rows = rows.slice(0,20);
+  if(rows.length===0){ el.innerHTML='<div class="empty">暂无记录</div>'; return; }
+  el.innerHTML = rows.map(r=>`<div class="history-item">
+    <div class="history-row">
+      <div>
+        <div>${escapeHtml(r.label)} <b>+${r.qty}件</b>${r.note? ' · '+escapeHtml(r.note):''}${r.cost? ' · 成本'+r.cost+'元':''}</div>
+        <div class="h-date">${formatDateStr(r.date)}</div>
+      </div>
+      <div class="h-actions">
+        <span class="link-btn" onclick="openEditPurchase('${r.pid}','${r.sid}','${r.id}')">改</span>
+        <span class="link-btn warn" onclick="deletePurchase('${r.pid}','${r.sid}','${r.id}')">删</span>
+      </div>
+    </div>
+  </div>`).join('');
+}
+
+function renderOutHistory(){
+  const el = document.getElementById('out-history');
+  let rows = [];
+  state.products.forEach(p=>{
+    p.skus.forEach(s=>{
+      s.sales.forEach(r=>rows.push({pid:p.id, sid:s.id, label:p.name+' · '+s.name, ...r}));
+    });
+  });
+  sortRecords(rows);
+  rows = rows.slice(0,20);
+  if(rows.length===0){ el.innerHTML='<div class="empty">暂无记录</div>'; return; }
+  el.innerHTML = rows.map(r=>`<div class="history-item">
+    <div class="history-row">
+      <div>
+        <div>${escapeHtml(r.label)} <b>-${r.qty}件</b> · ${escapeHtml(r.channel)}</div>
+        <div class="h-date">${formatDateStr(r.date)}</div>
+      </div>
+      <div class="h-actions">
+        <span class="link-btn" onclick="openEditSale('${r.pid}','${r.sid}','${r.id}')">改</span>
+        <span class="link-btn warn" onclick="deleteSale('${r.pid}','${r.sid}','${r.id}')">删</span>
+      </div>
+    </div>
+  </div>`).join('');
+}
+
+function openEditPurchase(pid, sid, rid){
+  const s = state.products.find(x=>x.id===pid).skus.find(x=>x.id===sid);
+  const r = s.purchases.find(x=>x.id===rid);
+  openModal(`
+    <h2>编辑进货记录</h2>
+    <label>日期</label>
+    <input type="date" id="m-date" value="${r.date}">
+    <label>数量</label>
+    <input type="number" id="m-qty" value="${r.qty}">
+    <label>单价成本(元)</label>
+    <input type="number" id="m-cost" value="${r.cost||''}">
+    <label>备注</label>
+    <input id="m-note" value="${escapeHtml(r.note||'')}">
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn-primary" style="margin-top:0;" onclick="saveEditPurchase('${pid}','${sid}','${rid}')">保存</button>
+    </div>
+    <button class="btn-danger" style="margin-top:10px;" onclick="deletePurchase('${pid}','${sid}','${rid}')">删除这条记录</button>
+  `);
+}
+
+function saveEditPurchase(pid, sid, rid){
+  const s = state.products.find(x=>x.id===pid).skus.find(x=>x.id===sid);
+  const r = s.purchases.find(x=>x.id===rid);
+  const qty = parseInt(document.getElementById('m-qty').value);
+  if(!qty || qty<=0){ showToast('请输入有效数量'); return; }
+  r.date = document.getElementById('m-date').value || r.date;
+  r.qty = qty;
+  r.cost = parseFloat(document.getElementById('m-cost').value)||0;
+  r.note = document.getElementById('m-note').value.trim();
+  saveState(); closeModal(); render();
+  showToast('已保存');
+}
+
+// 替换原有 confirm，使用自建模态框进行进货记录删除确认
+function deletePurchase(pid, sid, rid){
+  openModal(`
+    <h2>确认删除进货记录</h2>
+    <div style="font-size:13.5px;color:var(--muted);margin:10px 0 15px;line-height:1.5;">
+      确定删除这条进货记录吗？相关产品的当前库存数量会相应扣减。
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn-primary" style="margin-top:0;background:var(--warn);color:white;" onclick="executeDeletePurchase('${pid}','${sid}','${rid}')">确定删除</button>
+    </div>
+  `);
+}
+
+function executeDeletePurchase(pid, sid, rid){
+  const s = state.products.find(x=>x.id===pid).skus.find(x=>x.id===sid);
+  if(s){
+    s.purchases = s.purchases.filter(x=>x.id!==rid);
+    saveState(); closeModal(); render();
+    showToast('进货记录已删除');
+  }
+}
+
+function openEditSale(pid, sid, rid){
+  const s = state.products.find(x=>x.id===pid).skus.find(x=>x.id===sid);
+  const r = s.sales.find(x=>x.id===rid);
+  openModal(`
+    <h2>编辑出货记录</h2>
+    <label>日期</label>
+    <input type="date" id="m-date" value="${r.date}">
+    <label>数量</label>
+    <input type="number" id="m-qty" value="${r.qty}">
+    <label>渠道</label>
+    <select id="m-channel">${CHANNELS.map(c=>`<option value="${c}" ${c===r.channel?'selected':''}>${c}</option>`).join('')}</select>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn-primary" style="margin-top:0;" onclick="saveEditSale('${pid}','${sid}','${rid}')">保存</button>
+    </div>
+    <button class="btn-danger" style="margin-top:10px;" onclick="deleteSale('${pid}','${sid}','${rid}')">删除这条记录</button>
+  `);
+}
+
+function saveEditSale(pid, sid, rid){
+  const s = state.products.find(x=>x.id===pid).skus.find(x=>x.id===sid);
+  const r = s.sales.find(x=>x.id===rid);
+  const qty = parseInt(document.getElementById('m-qty').value);
+  if(!qty || qty<=0){ showToast('请输入有效数量'); return; }
+  r.date = document.getElementById('m-date').value || r.date;
+  r.qty = qty;
+  r.channel = document.getElementById('m-channel').value;
+  saveState(); closeModal(); render();
+  showToast('已保存');
+}
+
+// 替换原有 confirm，使用自建模态框进行出货记录删除确认
+function deleteSale(pid, sid, rid){
+  openModal(`
+    <h2>确认删除出货记录</h2>
+    <div style="font-size:13.5px;color:var(--muted);margin:10px 0 15px;line-height:1.5;">
+      确定删除这条出货记录吗？相关产品的当前库存数量会相应增加。
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn-primary" style="margin-top:0;background:var(--warn);color:white;" onclick="executeDeleteSale('${pid}','${sid}','${rid}')">确定删除</button>
+    </div>
+  `);
+}
+
+function executeDeleteSale(pid, sid, rid){
+  const s = state.products.find(x=>x.id===pid).skus.find(x=>x.id===sid);
+  if(s){
+    s.sales = s.sales.filter(x=>x.id!==rid);
+    saveState(); closeModal(); render();
+    showToast('出货记录已删除');
+  }
+}
+
+function renderAdvice(){
+  const el = document.getElementById('advice-list');
+  if(state.products.length===0 || state.products.every(p=>p.skus.length===0)){
+    el.innerHTML = '<div class="empty">先创建产品 and SKU并记录几笔出货，才能算出销售速度</div>';
+    return;
+  }
+  el.innerHTML = state.products.map(p=>{
+    if(p.skus.length===0) return '';
+    const totalStock = productTotalStock(p);
+    const totalAvg = productTotalAvg(p);
+    const productChannels = channelBreakdownProduct(p);
+    const skuCards = p.skus.map(s=>{
+      const avg = dailyAvgSku(s);
+      const stock = skuStock(s);
+      const safety = avg * (s.leadtime/2);
+      const reorderPoint = avg*s.leadtime + safety;
+      const suggestQty = Math.max(0, Math.round(reorderPoint*1.5 - stock));
+      let advice;
+      if(avg===0){
+        advice = '最近30天没有出货记录，暂时不需要补货。';
+      } else if(stock <= reorderPoint){
+        advice = `库存 ${stock} 件，已低于建议补货点（约${Math.round(reorderPoint)}件），建议补货约 <b>${suggestQty}</b> 件。`;
+      } else {
+        advice = `库存 ${stock} 件，高于建议补货点（约${Math.round(reorderPoint)}件），暂时不用补货。`;
+      }
+      const skuChannels = channelBreakdownSku(s);
+      return `<div class="advice-sku-card">
+        <div class="sname">${escapeHtml(s.name)}</div>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="num">${avg.toFixed(1)}</div><div class="lbl">日均销量(个)</div></div>
+          <div class="stat-box"><div class="num">${stock}</div><div class="lbl">当前库存</div></div>
+        </div>
+        <div class="helper" style="margin-top:8px;font-size:12.5px;color:var(--ink);">${advice}</div>
+        <div class="channel-line">近30天渠道：${formatChannelLine(skuChannels)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="card" style="margin-bottom:10px;">
+      <div class="advice-product-title">${escapeHtml(p.name)} <span style="color:var(--muted);font-size:12px;font-weight:400;">总库存${totalStock} · 总日均${totalAvg.toFixed(1)}</span></div>
+      <div class="channel-line" style="margin-bottom:10px;">产品总渠道：${formatChannelLine(productChannels)}</div>
+      ${skuCards}
+    </div>`;
+  }).join('');
+}
+
+/* ---------- CSV 导出 ---------- */
+
+function csvField(v){
+  const s = String(v===undefined||v===null? '' : v);
+  if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+
+function exportCSV(){
+  if(state.products.length===0){ showToast('还没有数据可导出'); return; }
+  const lines = [];
+  lines.push(['当前库存快照'].map(csvField).join(','));
+  lines.push(['产品','SKU','当前库存','补货周期(天)','近30天日均销量'].map(csvField).join(','));
+  state.products.forEach(p=>{
+    p.skus.forEach(s=>{
+      lines.push([p.name, s.name, skuStock(s), s.leadtime, dailyAvgSku(s).toFixed(1)].map(csvField).join(','));
+    });
+  });
+  lines.push('');
+  lines.push(['出入库记录'].map(csvField).join(','));
+  lines.push(['类型','产品','SKU','日期','数量','成本(元)','渠道','备注'].map(csvField).join(','));
+  let rows = [];
+  state.products.forEach(p=>{
+    p.skus.forEach(s=>{
+      s.purchases.forEach(r=>rows.push(['进货', p.name, s.name, r.date, r.qty, r.cost||'', '', r.note||'']));
+      s.sales.forEach(r=>rows.push(['出货', p.name, s.name, r.date, r.qty, '', r.channel||'', '']));
+    });
+  });
+  rows.sort((a,b)=> a[3].localeCompare(b[3]));
+  rows.forEach(r=>lines.push(r.map(csvField).join(',')));
+  const csv = lines.join('\r\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '库存记录_'+todayStr()+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('已导出CSV');
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+loadState();
+</script>
+
+</body>
+</html>
